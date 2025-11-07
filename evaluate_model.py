@@ -20,7 +20,7 @@ MODEL_PATH = "tinker://<your-model-id>/sampler_weights/final"
 TEST_DATA_FILE = "data/test_set.json"
 
 # 基础模型（必须与训练时使用的相同）
-BASE_MODEL = "Qwen/Qwen3-30B-A3B-Instruct"
+BASE_MODEL = "Qwen/Qwen3-8B-Base"
 
 # 采样参数
 MAX_TOKENS = 512
