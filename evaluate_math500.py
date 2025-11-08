@@ -3,7 +3,9 @@ from tinker import types
 from datasets import load_dataset
 import re
 import json
-from typing import Dict, List
+from typing import Dict
+
+# from typing import Dict, List
 import os
 
 MODEL_PATH = "tinker://a16e6b59-9c3a-4e95-88cd-afb3a77f0cbb/sampler_weights/s1k_1.1-20251107-141719"
@@ -100,9 +102,8 @@ def check_answer(predicted: str, expected: str) -> bool:
         pred_val = eval(pred_norm.replace(" ", ""))
         exp_val = eval(exp_norm.replace(" ", ""))
         return abs(pred_val - exp_val) < 1e-6
-    except:
+    except Exception:
         pass
-
     return False
 
 
@@ -137,7 +138,7 @@ def evaluate_on_math500(
     # 评估每个问题
     for i, example in enumerate(dataset):
         problem = example["problem"]
-        solution = example["solution"]
+        # solution = example["solution"]
         answer = example["answer"]
         subject = example["subject"]
         level = example["level"]
@@ -242,19 +243,19 @@ def print_results(results: Dict):
     print("MATH-500 Evaluation Results")
     print("=" * 70)
 
-    print(f"\nOverall Performance:")
+    print("\nOverall Performance:")
     print(f"  Total problems: {results['total']}")
     print(f"  Correct: {results['correct']}")
     print(f"  Accuracy: {results['accuracy']:.2%}")
 
-    print(f"\nPerformance by Subject:")
+    print("\nPerformance by Subject:")
     subjects_sorted = sorted(
         results["by_subject"].items(), key=lambda x: x[1]["accuracy"], reverse=True
     )
     for subject, stats in subjects_sorted:
         print(f"  {subject:25s}: {stats['accuracy']:.2%} ({stats['correct']}/{stats['total']})")
 
-    print(f"\nPerformance by Difficulty Level:")
+    print("\nPerformance by Difficulty Level:")
     levels_sorted = sorted(results["by_level"].items(), key=lambda x: x[0])
     for level, stats in levels_sorted:
         print(f"  Level {level}: {stats['accuracy']:.2%} ({stats['correct']}/{stats['total']})")

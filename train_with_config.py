@@ -4,7 +4,19 @@ import numpy as np
 import json
 import os
 from datetime import datetime
-from config import *
+
+# from config import *
+from config import (
+    DATA_FILES,
+    BASE_MODEL,
+    LORA_RANK,
+    LEARNING_RATE,
+    NUM_EPOCHS,
+    MODEL_NAME_PREFIX,
+    SAMPLING_MAX_TOKENS,
+    SAMPLING_TEMPERATURE,
+    SAMPLING_NUM_SAMPLES,
+)
 
 
 def load_json_files(file_paths):
@@ -139,10 +151,10 @@ def main():
     for epoch in range(NUM_EPOCHS):
         fwdbwd_future = training_client.forward_backward(processed_examples, "cross_entropy")
 
-        optim_future = training_client.optim_step(types.AdamParams(learning_rate=LEARNING_RATE))
+        # optim_future = training_client.optim_step(types.AdamParams(learning_rate=LEARNING_RATE))
 
         fwdbwd_result = fwdbwd_future.result()
-        optim_result = optim_future.result()
+        # optim_result = optim_future.result()
 
         # 计算损失
         logprobs = np.concatenate(

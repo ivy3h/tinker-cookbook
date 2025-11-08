@@ -4,7 +4,8 @@ import os
 from datetime import datetime
 from pathlib import Path
 from tinker_cookbook import cli_utils, model_info
-from tinker_cookbook.recipes.chat_sl import chat_datasets
+
+# from tinker_cookbook.recipes.chat_sl import chat_datasets
 from tinker_cookbook.renderers import TrainOnWhat
 from tinker_cookbook.supervised import train
 from tinker_cookbook.supervised.data import FromConversationFileBuilder

@@ -125,12 +125,12 @@ def main():
     train_lengths = [len(ex.get("output", "")) for ex in train_data]
     test_lengths = [len(ex.get("output", "")) for ex in test_data]
 
-    print(f"\nTraining set output length:")
+    print("\nTraining set output length:")
     print(f"  Min: {min(train_lengths)} characters")
     print(f"  Max: {max(train_lengths)} characters")
     print(f"  Avg: {sum(train_lengths) / len(train_lengths):.1f} characters")
 
-    print(f"\nTest set output length:")
+    print("\nTest set output length:")
     print(f"  Min: {min(test_lengths)} characters")
     print(f"  Max: {max(test_lengths)} characters")
     print(f"  Avg: {sum(test_lengths) / len(test_lengths):.1f} characters")
@@ -149,9 +149,9 @@ def main():
     print("=" * 70)
     print(f"1. Use {TRAIN_OUTPUT} for training")
     print(f"2. Use {TEST_OUTPUT} for evaluation")
-    print(f"3. Update config.py to use the training set:")
+    print("3. Update config.py to use the training set:")
     print(f"   DATA_FILES = ['{TRAIN_OUTPUT}']")
-    print(f"4. After training, evaluate using evaluate_model.py")
+    print("4. After training, evaluate using evaluate_model.py")
 
     print("\nDataset splitting completed!")
 

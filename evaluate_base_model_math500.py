@@ -73,7 +73,7 @@ def check_answer(predicted: str, expected: str) -> bool:
         pred_val = eval(pred_norm.replace(" ", ""))
         exp_val = eval(exp_norm.replace(" ", ""))
         return abs(pred_val - exp_val) < 1e-6
-    except:
+    except Exception:
         pass
 
     return False
@@ -217,19 +217,19 @@ def print_results(results):
     print(f"\nModel: {results['model']}")
     print(f"Fine-tuned: {results['fine_tuned']}")
 
-    print(f"\nOverall Performance:")
+    print("\nOverall Performance:")
     print(f"  Total: {results['total']}")
     print(f"  Correct: {results['correct']}")
     print(f"  Accuracy: {results['accuracy']:.2%}")
 
-    print(f"\nPerformance by Subject:")
+    print("\nPerformance by Subject:")
     subjects_sorted = sorted(
         results["by_subject"].items(), key=lambda x: x[1]["accuracy"], reverse=True
     )
     for subject, stats in subjects_sorted:
         print(f"  {subject:25s}: {stats['accuracy']:.2%} ({stats['correct']}/{stats['total']})")
 
-    print(f"\nPerformance by Difficulty:")
+    print("\nPerformance by Difficulty:")
     levels_sorted = sorted(results["by_level"].items(), key=lambda x: x[0])
     for level, stats in levels_sorted:
         print(f"  Level {level}: {stats['accuracy']:.2%} ({stats['correct']}/{stats['total']})")
