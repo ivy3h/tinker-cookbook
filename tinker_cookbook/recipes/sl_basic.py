@@ -18,13 +18,13 @@ def build_config_blueprint() -> chz.Blueprint[train.Config]:
         model_name_for_tokenizer=model_name,
         renderer_name=renderer_name,
         max_length=32768,
-        batch_size=128,
+        batch_size=16,
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
     dataset = chat_datasets.NoRobotsBuilder(common_config=common_config)
     if 1: 
         dataset = FromConversationFileBuilder(
-            common_config=common_config, file_path="/srv/nlprx-lab/share6/jhe478/tinker-cookbook/data/s1k_1.1_best.jsonl"
+            common_config=common_config, file_path="/srv/nlprx-lab/share6/jhe478/tinker-cookbook/data/s1k.jsonl"
         )
 
     return chz.Blueprint(train.Config).apply(
@@ -33,7 +33,7 @@ def build_config_blueprint() -> chz.Blueprint[train.Config]:
             "model_name": model_name,
             "dataset_builder": dataset,
             "learning_rate": 1e-5,
-            "lr_schedule": "linear",
+            "lr_schedule": "cosine",
             "num_epochs": 5,
             "eval_every": 8,
             "adam_beta1": 0.9,                  # β1 = 0.9
