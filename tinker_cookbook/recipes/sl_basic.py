@@ -8,9 +8,11 @@ from tinker_cookbook.supervised.data import FromConversationFileBuilder
 from tinker_cookbook.supervised.types import ChatDatasetBuilderCommonConfig
 import asyncio
 
+#import inspect
+#print(inspect.signature(train.Config))
 
 def build_config_blueprint() -> chz.Blueprint[train.Config]:
-    model_name = "meta-llama/Llama-3.1-8B"
+    model_name = "Qwen/Qwen3-4B-Instruct-2507"
     renderer_name = model_info.get_recommended_renderer_name(model_name)
     common_config = ChatDatasetBuilderCommonConfig(
         model_name_for_tokenizer=model_name,
@@ -20,27 +22,27 @@ def build_config_blueprint() -> chz.Blueprint[train.Config]:
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
     dataset = chat_datasets.NoRobotsBuilder(common_config=common_config)
-    if 0:  # To swap in your own dataset:
+    if 1: 
         dataset = FromConversationFileBuilder(
-            common_config=common_config, file_path="/path/to/your/dataset.jsonl"
+            common_config=common_config, file_path="/srv/nlprx-lab/share6/jhe478/tinker-cookbook/data/s1k_1.1_best.jsonl"
         )
-        # ^^^ Create a dataset from a JSONL file in the same format as
-        # example-data/conversations.jsonl
+
     return chz.Blueprint(train.Config).apply(
         {
             "log_path": "/tmp/tinker-examples/sl_basic",
             "model_name": model_name,
             "dataset_builder": dataset,
-            "learning_rate": 2e-4,
+            "learning_rate": 1e-5,
             "lr_schedule": "linear",
-            "num_epochs": 1,
+            "num_epochs": 5,
             "eval_every": 8,
+            "adam_beta1": 0.9,                  # β1 = 0.9
+            "adam_beta2": 0.95,                 # β2 = 0.95
         }
     )
 
 
 def main(config: train.Config):
-    # Avoid clobbering log dir from your previous run:
     cli_utils.check_log_dir(config.log_path, behavior_if_exists="ask")
     asyncio.run(train.main(config))
 
