@@ -38,3 +38,73 @@ Our examples support the following CLI arguments to log the results.
     - `{log_path}/metrics.jsonl` saves training metrics.
     - `{log_path}/checkpoints.jsonl` records all the checkpoints saved during training. You can share these checkpoints for model release, offline evaluation, etc.
   - Resuming: When using an existing `log_path`, you can either overwrite the previous run or resume training. This is particularly useful for recovering from runtime interruptions.
+
+
+## Modified Training Script with Automatic Analysis
+
+### Changes Made
+
+1. **Simplified Analysis Module (`analyze_results.py`)**
+   - Streamlined version of `results_check.py`
+   - Can be called programmatically or from command line
+   - Generates training plots and text reports
+
+2. **Enhanced Training Script (`sl_basic.py`)**
+   - Automatically analyzes results after training completes
+   - Creates organized output directory with meaningful names
+   - Saves hyperparameters for reference
+
+### Output Directory Structure
+
+Results are saved in directories with the following naming format:
+```
+results/YYYYMMDD_HHMMSS_model_dataset_lr{lr}_ep{epochs}/
+```
+
+Example:
+```
+results/20250108_143052_Qwen3-4B-Instruct-2507_s1k_lr1e-05_ep5/
+├── hyperparameters.txt      # Training configuration
+├── training_analysis.png    # Visualization plots
+└── training_report.txt      # Detailed statistics
+```
+
+### Usage
+
+1. **Run training with automatic analysis:**
+```bash
+python sl_basic.py
+```
+
+2. **Manually analyze existing results:**
+```bash
+python analyze_results.py <log_path> <output_dir>
+```
+
+Example:
+```bash
+python analyze_results.py /tmp/tinker-examples/sl_basic results/manual_analysis
+```
+
+### Key Features
+
+- **Automatic execution**: Analysis runs immediately after training
+- **Organized naming**: Results folders include model, dataset, and hyperparameters
+- **Comprehensive logs**: Saves hyperparameters, plots, and statistics
+- **Minimal code changes**: Core training logic remains unchanged
+- **Reusable analysis**: `analyze_results.py` can be used independently
+
+### Customization
+
+To modify training parameters, edit the `build_config_blueprint()` function in `sl_basic.py`:
+
+```python
+hyperparams = {
+    "learning_rate": 1e-5,        # Adjust learning rate
+    "num_epochs": 5,              # Change number of epochs
+    "batch_size": 16,             # Modify batch size
+    # ... other parameters
+}
+```
+
+The output directory name will automatically reflect these changes.
