@@ -316,6 +316,7 @@ class ModelEvaluator:
         compliance_threshold: float = 0.9,
         echo_prompt: bool = False,
         stop_tokens: Optional[List[str]] = None,
+        base_model_for_tokenizer: Optional[str] = None,
     ):
         self.max_tokens = max_tokens
         self.temperature = temperature
@@ -326,6 +327,7 @@ class ModelEvaluator:
         self.echo_prompt = echo_prompt
         # Default: no stop tokens for math problems to avoid premature truncation
         self.stop_tokens = stop_tokens if stop_tokens is not None else []
+        self.base_model_for_tokenizer = base_model_for_tokenizer
         
         # Tinker service client (shared)
         self.service_client = tinker.ServiceClient()
@@ -333,11 +335,35 @@ class ModelEvaluator:
         self.tokenizer = None
 
     def _load_tinker_model(self, base_model: str, lora_path: Optional[str] = None):
-        """Load model via Tinker platform."""
-        print(f"Initializing Tinker model: {base_model}")
+        """Load model via Tinker platform.
         
-        if lora_path:
-            # Load fine-tuned model
+        Supports three formats:
+        1. Base model: "Qwen/Qwen3-8B-Base"
+        2. LoRA path: base_model + lora_path parameter
+        3. Tinker URI: "tinker://uuid/path/to/weights" (must also specify --base_model_for_tokenizer)
+        """
+        # Check if this is a Tinker URI
+        if base_model.startswith("tinker://"):
+            print(f"Loading model from Tinker URI: {base_model}")
+            
+            # Create sampling client directly from URI
+            self.sampling_client = self.service_client.create_sampling_client(base_model)
+            
+            # For Tinker URIs, we need the base model to get the tokenizer
+            # Check if base_model_for_tokenizer is set
+            if hasattr(self, 'base_model_for_tokenizer') and self.base_model_for_tokenizer:
+                print(f"Loading tokenizer from base model: {self.base_model_for_tokenizer}")
+                from transformers import AutoTokenizer
+                self.tokenizer = AutoTokenizer.from_pretrained(self.base_model_for_tokenizer)
+            else:
+                raise ValueError(
+                    "When using Tinker URI, you must specify --base_model_for_tokenizer "
+                    "to load the appropriate tokenizer. Example: --base_model_for_tokenizer 'Qwen/Qwen2.5-7B-Instruct'"
+                )
+            
+        elif lora_path:
+            # Load fine-tuned model with LoRA weights
+            print(f"Initializing base model: {base_model}")
             print(f"Loading LoRA weights from: {lora_path}")
             training_client = self.service_client.create_lora_training_client(
                 base_model=base_model, rank=32
@@ -347,7 +373,8 @@ class ModelEvaluator:
                 name=lora_path
             )
         else:
-            # Load base model
+            # Load base model only
+            print(f"Initializing base model: {base_model}")
             training_client = self.service_client.create_lora_training_client(
                 base_model=base_model, rank=32
             )
@@ -638,6 +665,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--echo_prompt", action="store_true", help="Print one sample formatted prompt for debugging")
     parser.add_argument("--stop_tokens", type=str, nargs="*", default=None, 
                         help="Stop tokens for generation (default: none). Example: --stop_tokens '\\n\\nProblem:' '\\n\\n#'")
+    parser.add_argument("--base_model_for_tokenizer", type=str, default=None,
+                        help="Base model for tokenizer when using Tinker URI (e.g., 'Qwen/Qwen2.5-7B-Instruct')")
 
     # Thresholds for language validation
     parser.add_argument("--confidence_threshold", type=float, default=0.9,
@@ -671,6 +700,7 @@ def main():
         compliance_threshold=args.compliance_threshold,
         echo_prompt=args.echo_prompt,
         stop_tokens=args.stop_tokens,
+        base_model_for_tokenizer=args.base_model_for_tokenizer,
     )
 
     evaluator.run_evaluation(
