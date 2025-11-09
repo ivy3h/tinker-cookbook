@@ -497,6 +497,24 @@ class ModelEvaluator:
             os.remove(raw_path)
             print(f"Temporary raw file deleted: {raw_path}")
 
+    def _sample_single_question(self, prompt: str) -> str:
+        """Generate response for a single question."""
+        # Prepare sampling options
+        sampling_options = types.SamplingOptions(
+            max_tokens=self.max_tokens,
+            temperature=self.temperature,
+            stop=self.stop_tokens or [],
+            echo=False,
+        )
+        
+        # Generate
+        sampling_result = self.sampling_client.sample(
+            [prompt],
+            sampling_options=sampling_options,
+        )
+        
+        return sampling_result.outputs[0].text.strip()
+
     def evaluate_language(
         self,
         df: pd.DataFrame,
@@ -508,7 +526,7 @@ class ModelEvaluator:
         language_forcing: bool = False,
         lora_path: Optional[str] = None,
     ) -> None:
-        """Evaluate model for a specific language with two-phase persistence."""
+        """Evaluate model for a specific language with incremental persistence."""
         col_name = LanguageManager.get_language_code(language)
         if col_name not in df.columns:
             print(f"Error: Language column '{col_name}' not found. Skipping {language}...")
@@ -529,29 +547,16 @@ class ModelEvaluator:
             self._label_raw_file(raw_path, final_path, reasoning_language, model_path, dataset)
             return
 
-        # Case 3: Need to generate → load model lazily here
+        # Case 3: Need to generate
         print(f"[RUN] Generating responses for language='{language}', reasoning_language='{reasoning_language}'")
         questions = df[col_name].values.tolist()
+        gold_answers = df['answer'].values.tolist()
 
         translated_prefix, translated_suffix = (None, None)
         if language_forcing:
             translated_prefix = LF_prefix_dict[reasoning_language]
             translated_suffix = LF_suffix_dict[reasoning_language]
 
-        try:
-            # Load Tinker model
-            self._load_tinker_model(model_path, lora_path)
-            
-            # Generate responses
-            responses = self._generate_with_tinker(
-                questions, model_path, reasoning_language, translated_prefix, translated_suffix
-            )
-        finally:
-            # Clean up
-            self.sampling_client = None
-            self.tokenizer = None
-
-        # Phase 1 write: RAW (unlabeled)
         meta = {
             "language": language,
             "reasoning_language": reasoning_language,
@@ -559,14 +564,55 @@ class ModelEvaluator:
             "dataset": dataset,
             "n_samples": self.n_samples
         }
-        print(f"Writing RAW generations → {raw_path}")
-        raw_records_iter = ResultsWriter.iter_raw_records(df, col_name, responses, meta)
-        atomic_write_jsonl(raw_path, raw_records_iter)
-        print(f"Raw generations written: {raw_path}")
+
+        try:
+            # Load Tinker model
+            self._load_tinker_model(model_path, lora_path)
+            
+            # Create/clear the raw file
+            os.makedirs(os.path.dirname(raw_path), exist_ok=True)
+            with open(raw_path, 'w', encoding='utf-8') as f:
+                pass  # Create empty file
+            
+            # Generate responses one by one and append
+            for idx, (question, gold_answer) in enumerate(tqdm(zip(questions, gold_answers), total=len(questions))):
+                # Generate single response
+                prompt = PromptGenerator.generate_message(
+                    model_path, question, self.tokenizer, reasoning_language,
+                    translated_prefix, translated_suffix
+                )
+                
+                if self.echo_prompt and idx == 0:
+                    print("\n" + "="*50)
+                    print("Sample formatted prompt:")
+                    print(prompt)
+                    print("="*50 + "\n")
+                
+                response = self._sample_single_question(prompt)
+                
+                # Create record
+                record = {
+                    "question": question,
+                    "gold_answer": gold_answer,
+                    "response": response,
+                    **meta
+                }
+                
+                # Immediately append to file
+                with open(raw_path, 'a', encoding='utf-8') as f:
+                    f.write(json.dumps(record, ensure_ascii=False) + '\n')
+                    f.flush()  # Force write to disk
+            
+            print(f"Raw generations written: {raw_path}")
+            
+        finally:
+            # Clean up
+            self.sampling_client = None
+            self.tokenizer = None
 
         # Phase 2: Label
         self._label_raw_file(raw_path, final_path, reasoning_language, model_path, dataset)
-
+    
     def run_evaluation(
         self,
         model: str,
