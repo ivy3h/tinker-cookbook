@@ -42,7 +42,7 @@ def create_output_dir(model_name: str, dataset_name: str, config: dict) -> str:
 
 
 def build_config_blueprint() -> chz.Blueprint[train.Config]:
-    model_name = "Qwen/Qwen3-4B-Instruct-2507"
+    model_name = "Qwen/Qwen3-8B-Base"
     dataset_path = "/srv/nlprx-lab/share6/jhe478/tinker-cookbook/data/ms1k_all_languages.jsonl"
 
     renderer_name = model_info.get_recommended_renderer_name(model_name)
